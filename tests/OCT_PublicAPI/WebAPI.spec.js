@@ -104,4 +104,30 @@ test('API Test', async ({ request }) => {
     console.log("Dataset ID: ", datasetCreationjsonData.id);
 
 
-       });
+       //Dataset Status API call
+       for(let i=0;i<10;i++){
+       let DatasetStatus=await request.get(`https://api-emea.onesourcetax.com/corporate-tax/v1/datasets/operations/${datasetCreationjsonData.id}`,
+
+        {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,           
+        }
+    });
+
+      const DatasetStatusjsonData = await DatasetStatus.json();
+    JSON.stringify(DatasetStatusjsonData, null, 2);
+
+    console.log("Dataset Status: ", DatasetStatusjsonData.status);
+    if(DatasetStatusjsonData.status==="Successful"){
+        break;
+    }
+    console.log(`Dataset is still processing ${i+1}, Retrying in 3 seconds...`);
+    await new Promise(resolve => setTimeout(resolve, 3000)); // wait for 3 seconds before retrying
+}   
+
+console.log("Dataset processing completed.");
+
+    
+  
+
+});

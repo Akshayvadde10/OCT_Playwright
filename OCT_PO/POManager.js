@@ -2,6 +2,9 @@
 import { LowEnvLogin } from "./LowEnvLogin.js";
 import { Prod_Login } from "./Prod_Login.js";
 import{ EntCreation } from "./EntCreation.js";
+import { EntFilter } from "./EntFilter.js";
+import{EntityGrouping} from "./EntityGrouping.js";
+import { EntToGroup } from "./EntToGroup.js";
 import { CreateDS } from "./CreateDS.js";
 import { COACreation } from "./COACreation.js";
 import { CreateMap } from "./CreateMap.js";
@@ -11,12 +14,16 @@ import { CreateImport1 } from "./CreateImport1.js";
 
 
 
+
 class POManager{
     constructor(page){
         this.page=page;
         this.lowEnvLogin = new LowEnvLogin(this.page);
         this.prodLogin = new Prod_Login(this.page);
         this.entCreation = new EntCreation(this.page);
+        this.entFilter = new EntFilter(this.page);
+        this.entityGrouping = new EntityGrouping(this.page);
+        this.entToGroup= new EntToGroup(this.page);
         this.createDS = new CreateDS(this.page);
         this.coaCreation = new COACreation(this.page);
         this.createMap = new CreateMap(this.page);
@@ -32,6 +39,15 @@ class POManager{
     }   
     createEntity(uniqueEntityName, uniqueShortName, Jurisdiction){
         return this.entCreation.createEntity(uniqueEntityName, uniqueShortName, Jurisdiction);
+    }
+    filterEntity(Tsid){
+        return this.entFilter.filterEntity(Tsid);
+    }
+    groupEntity(GrpEntityName, Tsid){
+        return this.entityGrouping.entityGrouping(GrpEntityName, Tsid);
+    }
+    addEntityToGroup(GrpEntityName, entityName){
+        return this.entToGroup.addEntityToGroup(GrpEntityName, entityName);
     }
     createDataset(DatasetName, UniqueEntityName){
         return this.createDS.createDataset(DatasetName, UniqueEntityName);

@@ -39,7 +39,6 @@ await page.waitForTimeout(3000);
     // creating Dataset
      await frame.getByRole('button', { name: 'Calculations' }).click();
     await frame.getByText('Calculations').nth(1).click();
-    await page.pause();
    const result = await poManager.createDataset(testDataForBVT_UK.DatasetName, testDataForBVT_UK.EntityName);
    testDataForBVT_UK.taxYear = result.taxYear;
    testDataForBVT_UK.CalculationName = result.CalculationName;

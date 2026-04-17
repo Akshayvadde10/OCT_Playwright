@@ -18,11 +18,11 @@ let env = "SAT"; // Change this value to switch environments
 const testURL = environments[env].url;
 
     const poManager = new POManager(page);
-    if (env === "EMEA" || env === "APAC") {
+    if (env === "EMEA") {
         await page.goto(testURL);
         const login = new POManager(page);
         await login.loginToApplication("AkshayVadde.fim", "$Admin#135", "SYS_FIRM");
-      } else if (env === "QA" || env === "SAT") {
+      } else if (env === "SAT") {
         await page.goto(testURL);
          const login = new POManager(page);
         await login.loginToLApp("akshay.vadde+test@tr.com","$Admin#1","SYS_FIRM");

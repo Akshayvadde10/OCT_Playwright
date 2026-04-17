@@ -8,8 +8,8 @@ class EntCreation{
         this.entityIdentifierCell=this.frame.locator('[id="athena-grid-cell-1-1:4"]'); // Locator for Entity Identifier cell in grid
         this.jurisdictionCell=this.frame.locator('[id="athena-grid-cell-1-1:5"]'); // Locator for Jurisdiction cell in grid
         this.taxYearStartDateCell=this.frame.locator('[id="athena-grid-cell-1-1:6"]'); // Locator for Tax Year Start Date cell in grid
-        this.nameHeaderButton=this.frame.locator("//div[@id='athena-grid-cell-1-0:0']/button"); // Locator for Name header button in grid
-        this.filterInput=this.frame.locator('.wj-form-control'); // Locator for filter input
+       // this.nameHeaderButton=this.frame.locator("//div[@id='athena-grid-cell-1-0:0']/button"); // Locator for Name header button in grid
+       // this.filterInput=this.frame.locator('.wj-form-control'); // Locator for filter input
     }
 
     async createEntity(entityName,shortName,jurisdiction){
@@ -37,12 +37,12 @@ class EntCreation{
         await this.page.keyboard.press('Enter');// Save the entity
           // Wait for grid to refresh after entity creation
         await this.page.waitForTimeout(3000);
-        await this.nameHeaderButton.click();// Click Name header to sort
+        /*await this.nameHeaderButton.click();// Click Name header to sort
         await this.filterInput.fill(entityName);// Filter the grid by the unique entity name
-        console.log("Entity created successfully with name:" + entityName);
         await this.page.waitForTimeout(2000);
         await this.frame.getByText('Apply').click();
-       
+        console.log("Entity created successfully with name:" + entityName);
+        */
     }
 }
 
