@@ -1,7 +1,7 @@
 class LowEnvLogin{
     constructor(page){
    this.page=page;     
-   this.ciamUI=page.locator('#lnkBtnToCiamUl')
+   this.ciamUI=page.getByText('Thomson Reuters sign-in')
    this.username=page.locator('#username')
    this.signInButton=page.getByRole('button', { name: 'Sign in' })
    this.password=page.locator('#password')

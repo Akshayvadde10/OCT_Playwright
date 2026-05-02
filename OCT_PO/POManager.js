@@ -6,11 +6,18 @@ import { EntFilter } from "./EntFilter.js";
 import{EntityGrouping} from "./EntityGrouping.js";
 import { EntToGroup } from "./EntToGroup.js";
 import { CreateDS } from "./CreateDS.js";
+import { InsertSheet } from "./InsertSheet.js";
 import { COACreation } from "./COACreation.js";
 import { CreateMap } from "./CreateMap.js";
 import {CreateMap1} from "./CreateMap1.js";
 import { CreateImport } from "./CreateImport.js";
 import { CreateImport1 } from "./CreateImport1.js";
+import { InHeaderImport } from "./InHeaderImport.js";
+import { AppendexistingImport } from "./AppendexistingImport.js";
+import { ValidateImportedValues } from "./ValidateImportedValues.js";
+import { ValidateGrpImportedValues } from "./VaidateGrpImportedValues.js";
+import {Printcalc} from "./Printcalc.js";
+import {CompareFiles} from "./CompareFiles.js";
 
 
 
@@ -25,11 +32,18 @@ class POManager{
         this.entityGrouping = new EntityGrouping(this.page);
         this.entToGroup= new EntToGroup(this.page);
         this.createDS = new CreateDS(this.page);
+        this.insertsheet = new InsertSheet(this.page);
         this.coaCreation = new COACreation(this.page);
         this.createMap = new CreateMap(this.page);
         this.createMap1 = new CreateMap1(this.page);
         this.createImport = new CreateImport(this.page);
         this.createImport1 = new CreateImport1(this.page);
+        this.inHeaderImportPO = new InHeaderImport(this.page);
+        this.appendExistingImportPO = new AppendexistingImport(this.page);
+        this.validateImportedValues = new ValidateImportedValues(this.page);
+        this.validateGrpImportedvalues = new ValidateGrpImportedValues(this.page);
+        this.printcalc = new Printcalc(this.page);
+        this.comparePrintfile = new CompareFiles(this.page);
     }
     loginToLApp(username,password,clientName){
         return this.lowEnvLogin.loginToLApp(username,password,clientName);
@@ -49,11 +63,15 @@ class POManager{
     addEntityToGroup(GrpEntityName, entityName){
         return this.entToGroup.addEntityToGroup(GrpEntityName, entityName);
     }
-    createDataset(DatasetName, UniqueEntityName){
-        return this.createDS.createDataset(DatasetName, UniqueEntityName);
-    }   
-    createCOA(COAName, taxYear){
-        return this.coaCreation.createCOA(COAName, taxYear);
+    createDataset(DatasetName, GrpEntityName = null, Entities = null){
+        return this.createDS.createDataset(DatasetName, GrpEntityName, Entities);
+    } 
+    
+    insertSheet(calculationName, sheetName){
+        return this.insertsheet.insertSheet(calculationName, sheetName);
+    }
+    createCOA(COAName){
+        return this.coaCreation.createCOA(COAName);
     }
     createNewMap(MapName, DatasetName, COAName, ReportingStandard, MapType){
         return this.createMap.createNewMap(MapName, DatasetName, COAName, ReportingStandard, MapType);
@@ -68,7 +86,39 @@ class POManager{
     }
     createNewImport1(ImportName, DatasetName, ImportType, EntityName){
         return this.createImport1.createNewImport(ImportName, DatasetName, ImportType, EntityName);
-    }   
+    }  
+    
+    inHeaderImport(ImportName, DatasetName, ImportType,Importpath){
+        return this.inHeaderImportPO.inHeaderImport1(ImportName, DatasetName, ImportType,Importpath);
+    }
+
+    appendExistingImport(ImportName, DatasetName, ImportType,Importpath){
+        return this.appendExistingImportPO.appendExistingImport(ImportName, DatasetName, ImportType,Importpath);
+    }
+
+    validateImport(calculationName, expTurnoverValue, expCostOfSalesValue){
+        return this.validateImportedValues.validateImportedValues(calculationName, expTurnoverValue, expCostOfSalesValue);
+    }
+
+    validateMultipleImports(entityCalculations){
+        return this.validateImportedValues.validateMultipleEntitiesImport(entityCalculations);
+    }
+    validateGrpImport(calculationName, expTurnoverValue, expCostOfSalesValue){
+        return this.validateGrpImportedValues.validateGrpImportedValues(calculationName, expTurnoverValue, expCostOfSalesValue);
+    }
+
+    printcalculation(CalculationName){
+        return this.printcalc.printcalculation(CalculationName);
+    }
+
+    compareFiles(calculationName, buffer, expectedPdfPath){
+        return this.comparePrintfile.compareFiles(calculationName, buffer, expectedPdfPath);
+    }
+    validateGrpImportedValues(GroupCalculation, EntityName, expEntityValue, expTotalValue){
+        return this.validateGrpImportedvalues.validateGrpImportedValues(GroupCalculation, EntityName, expEntityValue, expTotalValue);
+    }
+
+
 }
 
 // At the end of POManager.js

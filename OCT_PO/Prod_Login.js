@@ -13,7 +13,11 @@ async loginToApplication(username,password,clientName){
     await this.username.fill(username);
     await this.password.fill(password);
     await this.signInButton.click();
+
+    // Wait for Corporate Tax tile to be visible after login (page takes time to load)
+    await this.corporateTaxTile.waitFor({ state: 'visible', timeout: 90000 });
     await this.corporateTaxTile.click();
+
     await this.subClientSearchBox.fill(clientName);
     await this.page.getByText(clientName).click();
 }

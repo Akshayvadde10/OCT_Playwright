@@ -16,7 +16,7 @@ class COACreation {
     this.fileInput = this.frame.locator("//input[@type='file']"); // Locator for file input in COA details page to upload chart of accounts template
   }
 
-  async createCOA(COAName, taxYear) {
+  async createCOA(COAName) {
     await this.addButton.click(); // Click Add button to create new COA
     await this.page.waitForTimeout(2000);
     await this.COANameInput.fill(COAName); // Fill in the COA name
@@ -24,11 +24,11 @@ class COACreation {
     await this.page.waitForTimeout(2000);
      const COAyear = await this.taxYearInput.inputValue(); // Get the default value of the tax year input
      console.log(COAyear);
-    if (COAyear !== taxYear) {
+   /* if (COAyear !== taxYear) {
        await this.taxYearInput.pressSequentially(taxYear); // Update the tax year if it doesn't match the expected value
        await this.frame.getByText(taxYear).click(); // Select the tax year from the dropdown
       }
-
+*/
     await this.okButton.click();
     await this.filterCOAheader.click(); // Click the actions button for the created COA to open the dropdown
     await this.page.waitForTimeout(2000);
