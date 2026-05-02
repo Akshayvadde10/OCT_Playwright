@@ -37,21 +37,27 @@ let Importpath1 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\R
 let Importpath2 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052\\UK_InHeader_ImportTb02.xlsx';
 let ExpectedPdfImport = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052\\Expected_ImportTb.pdf';
 let ExpectedPdfAppend = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052\\Expected_AppendExistong_ImportTb.pdf';
-let env = "SAT"; // Change this value to switch environments
+let env = process.env.TEST_ENV || "SAT"; // Read from environment variable, default to SAT
 const expTurnoverValue = "58,032";
 const expCostOfSalesValue = "(962,653)";
 const expEnt2value = "13,488,169";
 const expTotalValue ="40,464,507";
 const testURL = environments[env].url;
 
+    // Read credentials from environment variables (for CI/CD) or use defaults (for local)
+    const username = process.env.TEST_USERNAME || "akshay.vadde+test@tr.com";
+    const password = process.env.TEST_PASSWORD || "$Admin#1";
+    const emeaUsername = process.env.EMEA_USERNAME || "AkshayVadde.fim";
+    const emeaPassword = process.env.EMEA_PASSWORD || "$Admin#136";
+
     const poManager = new POManager(page);
     if (env === "EMEA") {
         await page.goto(testURL);
-        await poManager.loginToApplication("AkshayVadde.fim", "$Admin#136", "SYS_FIRM");
+        await poManager.loginToApplication(emeaUsername, emeaPassword, "SYS_FIRM");
       } else if (env === "SAT") {
         await page.goto(testURL);
-        
-        await poManager.loginToLApp("akshay.vadde+test@tr.com","$Admin#1","SYS_FIRM");
+
+        await poManager.loginToLApp(username, password, "SYS_FIRM");
       }
     const frame = page.frameLocator('iframe[title="Corporate Tax"]');
 
