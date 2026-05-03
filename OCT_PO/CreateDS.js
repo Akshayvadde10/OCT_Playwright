@@ -40,7 +40,7 @@ class CreateDS
     await this.page.waitForTimeout(10000);
 
     // Switch to All Calculations view
-    await this.frame.locator("//i[@class='bento-combobox-dropdown-button-icon bento-icon-caret-down-filled']").click();
+    await this.frame.locator("#returns_more").click();
     await this.frame.locator("//div[contains(text(),' All Calculations ')]").first().click();
 
     // Wait for grid to fully load after filter change
