@@ -18,7 +18,7 @@ class CreateDS
     await this.page.waitForTimeout(5000);
     await this.DatasetNameInput.fill(DatasetName);
     await this.nextButton.click();
-    await this.page.waitForTimeout(2000);// wait until all entities load in the list
+    await this.page.waitForTimeout(5000);// wait until all entities load in the list
 
     // Use Group Entity if provided, otherwise use first entity from Entities array
     const entityToSelect = GrpEntityName || (Entities && Entities.length > 0 ? Entities[0] : null);

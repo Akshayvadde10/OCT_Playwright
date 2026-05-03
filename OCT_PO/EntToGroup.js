@@ -8,8 +8,11 @@ class EntToGroup{
 }
 async addEntityToGroup(GrpEntityName,entityName){
 
-    // Use setChecked(true) instead of check() to handle cases where checkbox is already checked
-    await this.checkboxSelector.setChecked(true); // Select the checkbox for the first entity in the grid
+    // Only check if not already checked to avoid state change errors
+    const isChecked = await this.checkboxSelector.isChecked();
+    if (!isChecked) {
+        await this.checkboxSelector.setChecked(true);
+    }
     await this.page.waitForTimeout(2000);
     await this.addToGroupButton.click(); // Click the Add to Group button to add the entity to a group
     await this.page.waitForTimeout(2000);

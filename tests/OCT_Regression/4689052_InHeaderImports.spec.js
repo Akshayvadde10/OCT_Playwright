@@ -8,7 +8,7 @@ test('BVT_UK', async ({ page }) => {
 
 let Tsid="2222243";
 let GrpEntityName=`${Tsid}_Grp_${Date.now()}`
-let GrpShortName=`${Tsid}__Grp_${Date.now()}`
+let GrpShortName=`${Tsid}_Grp_${Date.now()}`
 
 let EntityName01=`${Tsid}_PWE01_${Date.now()}`
 let ShortName01=`${Tsid}_PWE01_${Date.now()}`
@@ -139,8 +139,8 @@ await page.waitForTimeout(3000);
    // creating Map
    await frame.getByRole('button', { name: 'Configuration' }).click();
     await frame.getByText('Mapping').click();
-    await poManager.createNewMap1(MapName, DatasetName, COAName, "United Kingdom Corporate Tax 2025 1.370", "Trial balance");
-    
+   await poManager.createNewMap1(MapName, DatasetName, COAName, "United Kingdom Corporate Tax 2025 1.370", "Trial balance");
+     
      //insert sheet
       for (let i=1; i<CalculationName.length-1; i++){
     await poManager.insertSheet(CalculationName[i], "Business - trade or property");
