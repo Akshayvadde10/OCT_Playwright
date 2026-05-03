@@ -16,6 +16,7 @@ class CreateImport1 {
             this.headerRowInput = this.frame.locator("//div[@class='col-md-4']//input[@name='rowAndHeader']").nth(1); // Locator for header row input in preview
             this.firstDataRowCheckbox = this.frame.locator('table input[type="checkbox"]').first(); // Locator for first data row checkbox in preview
             this.importButton = this.frame.locator("//button[@id='importDetails']"); // Locator for button to open import details page after setup
+            this.refreshButton = this.frame.locator('button[title="Refresh"]'); // Locator for refresh button in import details page
         }   
     async createNewImport(ImportName, DatasetName,ImportType,EntityName) {
     await this.page.waitForTimeout(2000);    
@@ -53,7 +54,7 @@ class CreateImport1 {
   await this.nextButton.click();
   await this.page.waitForTimeout(2000);
  await this.importButton.click();
- console.log("Import created successfully with name: " + ImportName);
+ //console.log("Import created successfully with name: " + ImportName);
  await this.page.waitForTimeout(2000);
 
 
@@ -68,6 +69,48 @@ class CreateImport1 {
  
 
   
+}
+
+async getImportStatusWithRefresh(ImportName, maxRetries = 10) {
+    const finalStatuses = ['Successful', 'Failed', 'Partially successful'];
+    let currentStatus = '';
+    let retryCount = 0;
+
+    try {
+        while (retryCount < maxRetries) {
+            // Get the current status from Progress column
+            const importRow = this.frame.locator(`div[role="row"]:has(div[role="gridcell"]:has-text("${ImportName}"))`);
+            
+            // Get the Progress badge/status (first visible cell with status)
+            currentStatus = await importRow
+                .locator('div[role="gridcell"]')
+                .nth(1)  // Adjust index if needed based on column position
+                .textContent();
+            
+            const status = currentStatus.trim();
+            console.log(`Attempt ${retryCount + 1}: Import ${ImportName} - Status: ${status}`);
+
+            // Check if status is one of the final statuses
+            if (finalStatuses.some(finalStatus => status.includes(finalStatus))) {
+                console.log(`✓ Import completed with status: ${status}`);
+                return status;
+            }
+
+            // If not final status, click refresh and retry
+            if (retryCount < maxRetries - 1) {
+                console.log(`Status not final (${status}). Clicking refresh button...`);
+                await this.refreshButton.click();
+                await this.page.waitForTimeout(3000); // Wait for refresh to complete
+                retryCount++;
+            } else {
+                console.log(`⚠ Max retries (${maxRetries}) reached. Final status: ${status}`);
+                return status;
+            }
+        }
+    } catch (error) {
+        console.error(`Error while checking import status: ${error.message}`);
+        throw error;
+    }
 }
 }
 export { CreateImport1 };

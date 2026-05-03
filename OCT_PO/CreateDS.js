@@ -43,9 +43,9 @@ class CreateDS
     await this.frame.locator("#returns_more").click();
     await this.frame.locator("//div[contains(text(),' All Calculations ')]").first().click();
 
-    // Wait for grid to fully load after filter change
-    await this.page.waitForTimeout(30000);
-    await this.page.waitForTimeout(30000);
+    // Verify Dataset creation notification with retry
+    const result = await this.verifyDatasetCreationNotification(DatasetName);
+    console.log(`Dataset Status: ${result.status}`);
 
     // Find and click the dataset column header button to open filter
     const headerButton = this.frame.locator("//div[@class='wj-cell wj-header wj-filter-off']//button//span").first();
@@ -65,9 +65,7 @@ class CreateDS
 // Get all calculation names for the dataset
     await this.page.waitForTimeout(2000);
 
-   /* await this.frame.getByRole('toolbar').getByRole('button', { name: 'More' }).click();
-    await this.frame.locator("#refreshCMSGrid").click(); // Refresh grid to ensure all calculations are visible
-    await this.page.waitForTimeout(5000);*/
+   
 
     let calculations = [];
 
@@ -92,6 +90,74 @@ class CreateDS
     }
 
     return calculations;
+}
+
+async verifyDatasetCreationNotification(DatasetName, maxRetries = 15) {
+    // Check notification status and retry with refresh if still creating
+    const toolbar = this.frame.getByRole('toolbar').first();
+    const moreButton = toolbar.getByRole('button', { name: 'More', exact: true });
+    const refreshMenuItem = this.frame.locator('#refreshCMSGrid').first();
+    
+    for (let i = 0; i < maxRetries; i++) {
+        // Wait 5 seconds before checking (except first attempt)
+        if (i > 0) {
+            console.log('Waiting 5 seconds...');
+            await this.page.waitForTimeout(5000);
+        }
+        
+        // Read notification text without blocking when it is temporarily not present.
+        const notificationTexts = await this.frame
+            .locator("//div[contains(text(), 'Creating Dataset')]")
+            .allTextContents();
+        const notificationText = notificationTexts
+            .map(text => text.replace(/\s+/g, ' ').trim())
+            .find(text => text.includes(DatasetName)) || '';
+        console.log(`Attempt ${i + 1}: ${notificationText}`);
+
+        // No active notification for this dataset; stop refreshing.
+        if (!notificationText) {
+            console.log('No active creation notification found for this dataset. Stopping refresh loop.');
+            return { status: 'Completed', message: 'No active creation notification for dataset' };
+        }
+
+        // Check if creation is complete
+        if (notificationText.includes('Success')) {
+            console.log('✓ Dataset created successfully');
+            return { status: 'Success', message: notificationText };
+        } else if (notificationText.includes('Failed') || notificationText.includes('failure')) {
+            console.log('✗ Dataset creation failed');
+            return { status: 'Failed', message: notificationText };
+        }
+
+        // Fallback: if notification vanished, confirm by checking dataset row visibility.
+        const datasetRow = this.frame.locator('div.wj-row').filter({ hasText: DatasetName }).first();
+        if (await datasetRow.isVisible()) {
+            console.log('✓ Dataset row is visible; treating creation as successful');
+            return { status: 'Success', message: 'Dataset row found in grid' };
+        }
+
+        // If still creating, click Refresh button
+        if (i < maxRetries - 1) {
+            console.log('Still creating... Clicking Refresh');
+            await moreButton.waitFor({ state: 'visible', timeout: 10000 });
+            await expect(moreButton).toBeEnabled({ timeout: 15000 });
+            if (!(await refreshMenuItem.isVisible())) {
+                await moreButton.click();
+            }
+            try {
+                await refreshMenuItem.waitFor({ state: 'visible', timeout: 5000 });
+            } catch {
+                // Menu can close during loading; re-open once and retry.
+                await moreButton.click();
+                await refreshMenuItem.waitFor({ state: 'visible', timeout: 10000 });
+            }
+            await expect(refreshMenuItem).toBeEnabled({ timeout: 10000 });
+            await refreshMenuItem.click();
+            await this.page.waitForTimeout(2000);
+        }
+    }
+
+    return { status: 'In Progress', message: 'Max retries reached' };
 }
 }
 export { CreateDS };
