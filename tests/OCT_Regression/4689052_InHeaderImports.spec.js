@@ -4,7 +4,7 @@ import { environments } from "../../OCT_PO/Env.js";
 import { updateEntityHeaders } from '../../utils/excelHeaderUpdater.js';
 import { Printcalc } from '../../OCT_PO/Printcalc.js';
 
-test('BVT_UK', async ({ page }) => {
+test('4689052_InHeaderImports', async ({ page }) => {
 
 let Tsid="2222244";
 let GrpEntityName=`${Tsid}_Grp_${Date.now()}`
@@ -122,17 +122,19 @@ await page.waitForTimeout(3000);
     // creating Dataset
      await frame.getByRole('button', { name: 'Calculations' }).click();
     await frame.getByText('Calculations').nth(1).click();
-    CalculationName = await poManager.createDataset(DatasetName, GrpEntityName,Entities);
+    const result = await poManager.createDataset(DatasetName, GrpEntityName,Entities);
+    const { calculations, taxYear: datasetTaxYear } = result;
   
-    // CalculationName = result.CalculationName;
+   CalculationName = calculations;
+     taxYear = datasetTaxYear;
    
 
     //  creating COA
     await frame.getByRole('button', { name: 'Configuration' }).click();
     await frame.getByText('Chart of Accounts').click();
     await page.waitForTimeout(2000);
-    //await poManager.createCOA(COAName, taxYear);
-    await poManager.createCOA(COAName);
+    await poManager.createCOA(COAName, taxYear);
+    //await poManager.createCOA(COAName);
 
 
 
@@ -157,11 +159,6 @@ await page.waitForTimeout(3000);
      await page.waitForTimeout(1000);
 
    await frame.locator("//a[@id='home.importOCT']").click();
-   
-    /* const importDetailsLink = frame.getByRole('link', { name: 'Import Details' });
-    await importDetailsLink.waitFor({ state: 'visible', timeout: 10000 });
-    await importDetailsLink.click();
-    console.log("Clicked Import Details link");*/
     await page.waitForTimeout(2000);
 
     // Wait for Import Details page to be ready
@@ -176,16 +173,16 @@ for (let i=1; i<CalculationName.length-1; i++){
 await poManager.validateImport(CalculationName[i], expTurnoverValue, expCostOfSalesValue);
 const { buffer } = await poManager.printcalculation(CalculationName[i]);
 await poManager.compareFiles(CalculationName[i], buffer, ExpectedPdfImport);
-}
+await poManager.drillDownPO.verifyDrilldown("58,032","Turnover", "-58,032.17");
+await poManager.drillDownPO.verifyDrilldown("(962,653)","Cost of sales", "962,652.71");
+    }
 
-      const expgrpEnt2Value = "13,488,169";
+
+    const expgrpEnt2Value = "13,488,169";
     const expgrpTotalValue = "40,464,507";
  await poManager.validateGrpImportedValues(CalculationName[0], EntityName02, expgrpEnt2Value, expgrpTotalValue);
 
 
-
-
-//await poManager.validateGrpImport(CalculationName[0], expEnt2value, expTotalValue)
 
 // creating Import2
 
@@ -206,6 +203,8 @@ for (let i=1; i<CalculationName.length-1; i++){
 await poManager.validateImport(CalculationName[i], expTurnoverValue, expCostOfSalesValue);
 const { buffer } = await poManager.printcalculation(CalculationName[i]);
 await poManager.compareFiles(CalculationName[i], buffer, ExpectedPdfImport);
+await poManager.drillDownPO.verifyDrilldown("58,032","Turnover", "-58,032.17");
+await poManager.drillDownPO.verifyDrilldown("(962,653)","Cost of sales", "962,652.71");
 }
 
  await poManager.validateGrpImportedValues(CalculationName[0], EntityName02, expgrpEnt2Value, expgrpTotalValue);
@@ -237,6 +236,9 @@ for (let i=1; i<CalculationName.length-1; i++){
 await poManager.validateImport(CalculationName[i], expTurnoverValueAppend, expCostOfSalesValueAppend);
 const { buffer } = await poManager.printcalculation(CalculationName[i]);
 await poManager.compareFiles(CalculationName[i], buffer, ExpectedPdfAppend);
+await poManager.drillDownPO.verifyDrilldown("116,064","Turnover", "-116,064.34");
+await poManager.drillDownPO.verifyDrilldown("(1,925,305)","Cost of sales", "1,925,305.42");
+
 }
 
       const expgrpEnt2ValueAppend = "26,976,337";

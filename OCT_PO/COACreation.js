@@ -16,20 +16,23 @@ class COACreation {
     this.fileInput = this.frame.locator("//input[@type='file']"); // Locator for file input in COA details page to upload chart of accounts template
   }
 
-  async createCOA(COAName) {
+  async createCOA(COAName,taxYear) {
     await this.addButton.click(); // Click Add button to create new COA
     await this.page.waitForTimeout(2000);
     await this.COANameInput.fill(COAName); // Fill in the COA name
-    console.log("COA created successfully with name:" + COAName);
     await this.page.waitForTimeout(2000);
-     const COAyear = await this.taxYearInput.inputValue(); // Get the default value of the tax year input
+     const COAyear = (await this.taxYearInput.inputValue()).trim(); // Get the default value of the tax year input
+     const expectedTaxYear = `${taxYear ?? ''}`.trim();
      console.log(COAyear);
-   /* if (COAyear !== taxYear) {
-       await this.taxYearInput.pressSequentially(taxYear); // Update the tax year if it doesn't match the expected value
-       await this.frame.getByText(taxYear).click(); // Select the tax year from the dropdown
+    if (expectedTaxYear && COAyear !== expectedTaxYear) {
+      await this.taxYearInput.click(); // Click to open the tax year dropdown
+       await this.page.waitForTimeout(2000);
+       await this.taxYearInput.pressSequentially(expectedTaxYear); // Update the tax year if it doesn't match the expected value
+       await this.frame.getByRole('option', { name: expectedTaxYear }).click(); // Select the tax year from the dropdown
       }
-*/
+
     await this.okButton.click();
+     console.log("COA created successfully with name:" + COAName);
     await this.filterCOAheader.click(); // Click the actions button for the created COA to open the dropdown
     await this.page.waitForTimeout(2000);
     await this.filterCOAname.pressSequentially(COAName);
@@ -38,7 +41,7 @@ class COACreation {
     await this.page.waitForTimeout(2000);
     await this.frame.locator(`a:has-text("${COAName}")`).click(); // Click the created COA to open details page
     await this.page.waitForTimeout(2000);
-    await this.fileInput.setInputFiles("C:/Playwright_self/playwright-OCT-Automation2/Test Data/BVT_UK_ImportCoA.xlsx");
+    await this.fileInput.setInputFiles("C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052\\UK_ImportCoA.xlsx");
     await this.frame.getByText("Save").click();
     await this.page.waitForTimeout(2000);
   }

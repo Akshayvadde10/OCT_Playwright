@@ -6,6 +6,8 @@ class CreateDS
         this.frame = page.frameLocator('iframe[title="Corporate Tax"]'); // Locator for the iframe containing the create dataflow form
         this.addButton = this.frame.locator('#addDataSet, button:has-text("Add")'); // Locator for Add button to start creating new dataflow
         this.DatasetNameInput = this.frame.locator("input").first();
+        this.startDateInput = this.frame.getByRole('textbox', { name: 'm/d/yyyy' }).first();
+        this.endDateInput = this.frame.getByRole('textbox', { name: 'm/d/yyyy' }).nth(1);
         this.nextButton = this.frame.getByText("Next");
         this.entityFilterInput = this.frame.locator("//input[@placeholder='Type to filter the entities']");
         this.finishButton = this.frame.getByText("Finish");
@@ -17,6 +19,10 @@ class CreateDS
     await this.addButton.click();
     await this.page.waitForTimeout(5000);
     await this.DatasetNameInput.fill(DatasetName);
+    const currentYear = new Date().getFullYear();
+    await this.startDateInput.fill(`7/1/${currentYear - 1}`);
+    await this.endDateInput.fill(`6/30/${currentYear}`);
+
     await this.nextButton.click();
     await this.page.waitForTimeout(5000);// wait until all entities load in the list
 
@@ -89,7 +95,48 @@ class CreateDS
         }
     }
 
-    return calculations;
+
+        // Show Tax Year column if hidden, then scroll right and read it from the dataset row.
+    const showHideColumnsButton = this.frame.locator("//button[@ng-reflect-ngb-tooltip='Show/Hide Columns']");
+    const taxYearColumnToggle = this.frame.locator("//label[contains(., 'Tax Year')]/bento-checkbox/input[@type='checkbox']");
+    const headerRow = this.frame.locator('[role="treegrid"] [role="row"]').first();
+    const taxYearHeader = headerRow.getByText('Tax Year', { exact: true }).first();
+    const gridContainer = this.frame.locator('.wj-cells').first();
+    const datasetRow = this.frame.locator('div.wj-row').filter({ hasText: DatasetName }).nth(1);
+
+    const hasVisibleTaxYearHeader = await taxYearHeader.isVisible().catch(() => false);
+    if (!hasVisibleTaxYearHeader) {
+        await showHideColumnsButton.click();
+        const isTaxYearChecked = await taxYearColumnToggle.isChecked().catch(() => false);
+        if (!isTaxYearChecked) {
+            await taxYearColumnToggle.click();
+        }
+        await showHideColumnsButton.click();
+        await this.page.waitForTimeout(2000);
+    }
+
+    await gridContainer.evaluate((el) => {
+        el.scrollLeft = el.scrollWidth;
+    });
+    await this.page.waitForTimeout(500);
+
+    const visibleHeaders = await headerRow.locator('[role="columnheader"]').allTextContents();
+    const taxYearColumnIndex = visibleHeaders.findIndex((text) => text.replace(/\s+/g, ' ').trim() === 'Tax Year');
+
+    let taxYear = null;
+    if (taxYearColumnIndex >= 0) {
+        taxYear = await datasetRow.locator('div.wj-cell[role="gridcell"]').nth(taxYearColumnIndex).textContent();
+    }
+
+    if (!taxYear || !taxYear.trim()) {
+        const firstCalculation = calculations[0] || '';
+        const taxYearMatch = firstCalculation.match(/\/(\d{4})$/);
+        taxYear = taxYearMatch ? taxYearMatch[1] : `${currentYear}`;
+    }
+
+    console.log("Tax Year for the dataset: " + taxYear);
+
+    return { calculations, taxYear };
 }
 
 async verifyDatasetCreationNotification(DatasetName, maxRetries = 15) {

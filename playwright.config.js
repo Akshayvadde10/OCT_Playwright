@@ -35,14 +35,14 @@ export default defineConfig({
     headless: false,
     video: 'retain-on-failure',
     
-    navigationTimeout: 120000, // Navigation timeout
+    navigationTimeout: 150000, // Navigation timeout
     actionTimeout: 60000, // Action timeout
   },
 
  
 
   // Global test timeout
-  timeout: 1200000, // 20 minutes per test
+  timeout: 1800000, // 30 minutes per test
 
   /* Configure projects for major browsers */
   projects: [

@@ -18,6 +18,7 @@ import { ValidateImportedValues } from "./ValidateImportedValues.js";
 import { ValidateGrpImportedValues } from "./VaidateGrpImportedValues.js";
 import {Printcalc} from "./Printcalc.js";
 import {CompareFiles} from "./CompareFiles.js";
+import { DrillDown } from "./DrillDown.js";
 
 
 
@@ -44,6 +45,7 @@ class POManager{
         this.validateGrpImportedvalues = new ValidateGrpImportedValues(this.page);
         this.printcalc = new Printcalc(this.page);
         this.comparePrintfile = new CompareFiles(this.page);
+        this.drillDownPO = new DrillDown(this.page);
     }
     loginToLApp(username,password,clientName){
         return this.lowEnvLogin.loginToLApp(username,password,clientName);
@@ -70,8 +72,8 @@ class POManager{
     insertSheet(calculationName, sheetName){
         return this.insertsheet.insertSheet(calculationName, sheetName);
     }
-    createCOA(COAName){
-        return this.coaCreation.createCOA(COAName);
+    createCOA(COAName,taxYear){
+        return this.coaCreation.createCOA(COAName, taxYear);
     }
     createNewMap(MapName, DatasetName, COAName, ReportingStandard, MapType){
         return this.createMap.createNewMap(MapName, DatasetName, COAName, ReportingStandard, MapType);
@@ -116,6 +118,9 @@ class POManager{
     }
     validateGrpImportedValues(GroupCalculation, EntityName, expEntityValue, expTotalValue){
         return this.validateGrpImportedvalues.validateGrpImportedValues(GroupCalculation, EntityName, expEntityValue, expTotalValue);
+    }
+    drillDown(LineItemAmount, LineitemName, DrillDownAmount){
+        return this.drillDownPO.verifyDrilldown(LineItemAmount, LineitemName, DrillDownAmount);
     }
 
 
