@@ -65,6 +65,7 @@ class CreateDS
     await this.page.waitForTimeout(5000);
     // Verify filtered dataset appears
     const datasetEntry = this.frame.locator("//div[@id='athena-grid-cell-82-2:1']");
+    await this.page.waitForTimeout(5000);
     console.log("Dataset created successfully with name:" + DatasetName);
     await expect(datasetEntry).toHaveText(DatasetName);
 
