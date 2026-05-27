@@ -6,7 +6,7 @@ class CreateMap1 {
         this.mapNameInput = this.frame.locator("#mapping_add_mapName");
         this.datasetDropdown = this.frame.locator('#bui-combobox-16-input');
         this.COAdropdown = this.frame.locator('#bui-combobox-20-input');
-        this.Mapped_to_Dropdown = this.frame.locator('#bui-combobox-22-input');
+        this.Mapped_to_Dropdown = this.frame.locator('#mapping_add_templates input[type="text"]');
         this.ImportTypeDropdown = this.frame.locator('#bui-combobox-24-input');
         this.okButton = this.frame.getByRole("button", { name: "OK" });
     }   
@@ -38,25 +38,44 @@ class CreateMap1 {
     await this.page.keyboard.press('Tab');
     await this.page.keyboard.press('Tab');
     // await this.Mapped_to_Dropdown.pressSequentially(template);
-    await this.frame.locator("#mapping_add_templates").pressSequentially(template);
-    await this.frame.locator("div.mb-1", { hasText: template }).click();
+    await this.page.waitForTimeout(2000);
+    const templateInput = this.Mapped_to_Dropdown;
+    await templateInput.click();
+    const selectedTemplate = await templateInput.inputValue();
+    if (selectedTemplate !== template) {
+        await templateInput.press('Control+A');
+        await templateInput.press('Backspace');
+        await templateInput.pressSequentially(template);
+    }
+    await templateInput.press('Enter');
     await this.page.waitForTimeout(2000);
      await this.page.keyboard.press('Tab');
      await this.page.keyboard.press('Tab');
+     await this.page.waitForTimeout(2000);
    // await this.ImportTypeDropdown.pressSequentially(ImportType);
-   await this.frame.locator("#mapping_add_importTypes").pressSequentially(ImportType);
-    await this.frame.locator("div.mb-1", { hasText: ImportType }).click();
+   const importTypeInput = this.frame.locator('#mapping_add_importTypes input[type="text"]');
+   await importTypeInput.click();
+   const selectedImportType = await importTypeInput.inputValue();
+   if (selectedImportType !== ImportType) {
+       await importTypeInput.press('Control+A');
+       await importTypeInput.press('Backspace');
+       await importTypeInput.pressSequentially(ImportType);
+   }
+   await this.frame.locator("div.mb-1", { hasText: ImportType }).click();
+    const mapDialog = this.frame.locator('ngb-modal-window[role="dialog"]');
     await this.okButton.click(); // Save the new Map
-    await this.frame.locator("//div[@id='athena-grid-cell-44-0:2']//button").click();// Click the actions button for the created Map to open the dropdown
+
+ 
+     await this.frame.locator("//div[@id='athena-grid-cell-44-0:2']//button").click();// Click the actions button for the created Map to open the dropdown
     await this.frame.locator(".wj-form-control").pressSequentially(MapName);
     await this.page.waitForTimeout(2000);
     await this.frame.getByText("Apply").click();
     await this.page.waitForTimeout(2000);
     await this.frame.locator(`//a[text()="${MapName}"]`).click(); // Click the created Map to open details page
-    await this.page.waitForTimeout(5000);
-    await this.frame.locator('input[type="file"]').setInputFiles("C:/Playwright_self/playwright-OCT-Automation2/Test Data/Regression/4689052/UK_ImportMapping.xlsx");
-    await this.page.waitForTimeout(5000);
+    await this.page.waitForTimeout(10000);
+    await this.frame.locator('input[type="file"]').setInputFiles("C:/Playwright_self/playwright-OCT-Automation2/Test Data/BVT_UK_ImportMapping.xlsx");
+    await this.page.waitForTimeout(2000);
     console.log("Map created successfully with name: " + MapName);
-    }
+}
 }
 export { CreateMap1 };

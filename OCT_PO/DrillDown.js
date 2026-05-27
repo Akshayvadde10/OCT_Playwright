@@ -11,6 +11,23 @@ class DrillDown {
         await busyLoader.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => null);
     }
 
+    // Close any leftover right-hand side panel (e.g. the Drilldown
+    // comparable-picker combobox) that can linger from a previous iteration.
+    // When it stays open the worksheet shifts, the line-item amount cell
+    // moves, and drilldown click attempts land on the wrong target —
+    // producing "Drilldown did not open" errors.
+    async dismissSidePanel() {
+        try {
+            const sidePanelClose = this.frame.getByRole('button', { name: '×' }).last();
+            if (await sidePanelClose.isVisible({ timeout: 800 }).catch(() => false)) {
+                await sidePanelClose.click({ timeout: 2000 }).catch(() => {});
+                await this.page.waitForTimeout(500);
+            }
+        } catch {
+            // No side panel — nothing to do.
+        }
+    }
+
     async didInFrameDrilldownOpen(timeout = 2000) {
         const drilldownHeader = this.frame.getByText('DrillDown', { exact: true }).first();
         const treegrid = this.frame.locator('[role="treegrid"]').first();
@@ -30,7 +47,13 @@ class DrillDown {
         const popupPromise = this.page.waitForEvent('popup', { timeout: 2000 }).catch(() => null);
         const pagePromise = context.waitForEvent('page', { timeout: 2000 }).catch(() => null);
 
-        await clickAction();
+        try {
+            await clickAction();
+        } catch {
+            // The click attempt may fail if the in-frame drilldown already opened
+            // (the target element gets detached). Swallow it and let the caller
+            // detect the same-page drilldown.
+        }
 
         const [popupPage, eventPage] = await Promise.all([popupPromise, pagePromise]);
         return popupPage
@@ -102,28 +125,47 @@ class DrillDown {
     }
 
     async openDrilldownPage(amountCell, amountValue) {
+        await this.dismissSidePanel();
         await this.waitForWorksheetIdle();
         await amountCell.scrollIntoViewIfNeeded();
 
-        // OCT drilldown is usually bound to code tokens (Q, Q1, B, etc.), not the amount text.
-        const drilldownToken = amountCell
+        // OCT drilldown is bound to code tokens (Q, Q1, B, ...). After an
+        // append-existing import the cell can show MULTIPLE tokens — e.g.
+        // "P Q £ 116,064" where P is the paste indicator and Q is the
+        // drilldown trigger. Collect all token candidates and try them in
+        // order, skipping the paste marker "P".
+        const tokenLocator = amountCell
             .locator('xpath=.//*[self::span or self::div][normalize-space() and string-length(normalize-space()) <= 4]')
-            .filter({ hasText: /^(?:[A-Z]{1,2}\d{0,2})$/ })
-            .first();
+            .filter({ hasText: /^(?:[A-Z]{1,2}\d{0,2})$/ });
+
+        const tokenCount = await tokenLocator.count().catch(() => 0);
+        const tokenTargets = [];
+        for (let i = 0; i < tokenCount; i++) {
+            const token = tokenLocator.nth(i);
+            const text = ((await token.textContent().catch(() => '')) || '').trim();
+            // Skip the paste indicator — it never opens drilldown.
+            if (text === 'P') {
+                continue;
+            }
+            tokenTargets.push(token);
+        }
+
         const amountTextTarget = amountCell.getByText(amountValue, { exact: true }).first();
-        const hasDrilldownToken = await drilldownToken.isVisible().catch(() => false);
         const hasAmountTextTarget = await amountTextTarget.isVisible().catch(() => false);
 
-        const clickTarget = hasDrilldownToken
-            ? drilldownToken
-            : (hasAmountTextTarget ? amountTextTarget : amountCell);
+        // Build a prioritised list of click targets: drilldown tokens first
+        // (Q/Q1/B/...), then the amount text, then the whole cell.
+        const clickTargets = [...tokenTargets];
+        if (hasAmountTextTarget) {
+            clickTargets.push(amountTextTarget);
+        }
+        clickTargets.push(amountCell);
 
-        const attempts = [
-            async () => clickTarget.click({ timeout: 2000 }),
-            async () => clickTarget.dblclick({ timeout: 2000 }),
-            async () => amountCell.click({ timeout: 2000 }),
-            async () => amountCell.dblclick({ timeout: 2000 })
-        ];
+        const attempts = [];
+        for (const target of clickTargets) {
+            attempts.push(async () => target.click({ timeout: 2000 }));
+            attempts.push(async () => target.dblclick({ timeout: 2000 }));
+        }
 
         for (const attempt of attempts) {
             const drilldownPage = await this.clickAndCaptureNewPage(attempt);
@@ -131,13 +173,13 @@ class DrillDown {
                 return { type: 'new-page', page: drilldownPage };
             }
 
-            await this.dismissRedBanner();
-
-            const inFrameOpened = await this.didInFrameDrilldownOpen(2000);
-            if (inFrameOpened) {
+            // Check same-page drilldown BEFORE retrying another click, since the
+            // first click may have already opened the in-frame drilldown.
+            if (await this.didInFrameDrilldownOpen(2000)) {
                 return { type: 'same-page' };
             }
 
+            await this.dismissRedBanner();
             await this.waitForWorksheetIdle();
         }
 
@@ -152,19 +194,32 @@ class DrillDown {
     }
 
     getDrilldownAmountCell(root) {
-        const groupedAmountCell = root
+        // Pin to the "Target: ..." group row so we are not confused by header
+        // rows. The Total Amount cell is the first gridcell in that row whose
+        // text contains any number (with or without decimals); this is robust
+        // against extra columns (e.g. Source Currency, Amount) appearing in
+        // certain drilldown views.
+        const groupRow = root
             .locator('role=treegrid >> role=row')
             .filter({ hasText: /Target:/i })
-            .first()
-            .locator('role=gridcell')
-            .filter({ hasText: /-?\d[\d,]*\.\d{2}/ })
             .first();
 
-        const fallbackAmountCell = root
-            .locator('role=treegrid >> role=row')
-            .nth(0)
+        // Total Amount is reliably the SECOND gridcell of the group row
+        // (right after the "Target: ... (N items)" label). Trailing cells
+        // for non-aggregatable columns (e.g. Source Currency, Amount in
+        // 8-column drilldowns) are empty, so `.last()` is unsafe.
+        const groupedAmountCell = groupRow
             .locator('role=gridcell')
-            .last();
+            .nth(1);
+
+        // Fallback: first gridcell whose text contains a digit AND a comma
+        // or a decimal point or a leading minus. This excludes the label
+        // cell "(N items)" while matching real numeric totals like
+        // "962,652.71" or "-58,032.17".
+        const fallbackAmountCell = groupRow
+            .locator('role=gridcell')
+            .filter({ hasText: /[-]?\d[\d,]*\.\d+|\d{1,3}(?:,\d{3})+/ })
+            .first();
 
         return { groupedAmountCell, fallbackAmountCell };
     }
@@ -188,6 +243,7 @@ class DrillDown {
     }
 
     async verifyDrilldown(LineItemAmount, LineitemName, DrillDownAmount = null) {
+        await this.dismissSidePanel();
         await this.ensureIncomeStatementSheet();
 
         const lineItemCell = this.frame.locator('div.athena-worksheet-cell-inner-default').filter({ hasText: LineitemName }).first();
@@ -227,11 +283,14 @@ class DrillDown {
         }
 
         if (DrillDownAmount !== null && DrillDownAmount !== undefined) {
-            const primaryVisible = await totalAmountCell.waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false);
+            // Drilldown grids can take several seconds to populate, especially
+            // on larger datasets. Use a generous primary timeout before
+            // falling back to a structural locator.
+            const primaryVisible = await totalAmountCell.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
             const resolvedAmountCell = primaryVisible ? totalAmountCell : fallbackAmountCell;
 
             if (!primaryVisible) {
-                await resolvedAmountCell.waitFor({ state: 'visible', timeout: 2000 });
+                await resolvedAmountCell.waitFor({ state: 'visible', timeout: 5000 });
             }
 
             const drillDownActualAmount = ((await resolvedAmountCell.textContent()) || '')
@@ -249,7 +308,49 @@ class DrillDown {
         if (drilldownTarget.type === 'new-page') {
             await drilldownTarget.page.close();
         } else {
-            await this.page.goBack().catch(() => null);
+            // Same-page drilldown: exit the in-frame DrillDown view so the left
+            // navigation tree (with "Income statement") is rendered again for
+            // the next iteration. The back-arrow icon in the DrillDown toolbar
+            // has no accessible name, so target it by structure: first clickable
+            // element inside the toolbar that contains the "DrillDown" heading.
+            const drilldownToolbar = this.frame
+                .locator('[role="toolbar"]')
+                .filter({ hasText: /^\s*DrillDown\s*$/ })
+                .first();
+
+            const candidateBackTargets = [
+                drilldownToolbar.locator('button, [role="button"]').first(),
+                drilldownToolbar.locator('a').first(),
+                // Some builds render the back icon as a span with a click handler.
+                drilldownToolbar.locator('span, i').first()
+            ];
+
+            let exited = false;
+            for (const target of candidateBackTargets) {
+                const visible = await target.isVisible({ timeout: 800 }).catch(() => false);
+                if (!visible) {
+                    continue;
+                }
+                await target.click({ timeout: 2000 }).catch(() => {});
+
+                // We're back on the worksheet when the left navigation tree is
+                // visible again.
+                const treeBack = await this.frame
+                    .getByRole('treeitem', { name: /Income statement/i })
+                    .first()
+                    .isVisible({ timeout: 3000 })
+                    .catch(() => false);
+                if (treeBack) {
+                    exited = true;
+                    break;
+                }
+            }
+
+            if (!exited) {
+                // Last resort: press Escape; harmless if it does nothing.
+                await this.page.keyboard.press('Escape').catch(() => {});
+            }
+
             await this.waitForWorksheetIdle();
             await this.dismissRedBanner();
         }

@@ -15,7 +15,7 @@ test('EVoke UI Test', async ({ browser }) => {
 
     await page.locator('#username').fill("student");
     await page.locator('#password').fill("Password123");
-    await page.pause();
+    
     await page.locator('#submit').click();
 	
 
@@ -32,13 +32,10 @@ weblogin= await browser.newContext({storageState:'auth.json'});
 
 test('EVoke UI Test_negative scenario', async ({ }) => {
 
-    let page=weblogin.newPage();
+    let page=await weblogin.newPage();
 
     await page.goto('https://practicetestautomation.com/practice/');
     await page.pause();
-
-
-   
 
 
 });

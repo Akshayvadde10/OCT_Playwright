@@ -6,7 +6,7 @@ import { Printcalc } from '../../OCT_PO/Printcalc.js';
 
 test('4689052_InHeaderImports', async ({ page }) => {
 
-let Tsid="2222244";
+let Tsid="2222245";
 let GrpEntityName=`${Tsid}_Grp_${Date.now()}`
 let GrpShortName=`${Tsid}_Grp_${Date.now()}`
 
@@ -23,20 +23,20 @@ let EntityName04=`${Tsid}_PWE04_${Date.now()}`
 let ShortName04=`${Tsid}_PWE04_${Date.now()}`
 
 let Jurisdiction="United Kingdom";
-let DatasetName="PWDS_"+Date.now();
+let DatasetName=`${Tsid}_PWDS_${Date.now()}`;
 let CalculationName;
 let taxYear;
-let COAName=`PWCOA_${Date.now()}`;
-let MapName=`PWMap_${Date.now()}`;
+let COAName=`${Tsid}_PWCOA_${Date.now()}`;
+let MapName=`${Tsid}_PWMap_${Date.now()}`;
 let ImportType="Trial balance";
-let ImportName01=`PWImport01_${Date.now()}`;
-let ImportName02=`PWImport02_${Date.now()}`;
-let ImportName03=`PWImport03_${Date.now()}`;
+let ImportName01=`${Tsid}_PWImport01_${Date.now()}`;
+let ImportName02=`${Tsid}_PWImport02_${Date.now()}`;
+let ImportName03=`${Tsid}_PWImport03_${Date.now()}`;
 
-let Importpath1 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052\\UK_InHeader_ImportTb.xlsx';
-let Importpath2 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052\\UK_InHeader_ImportTb02.xlsx';
-let ExpectedPdfImport = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052\\Expected_ImportTb.pdf';
-let ExpectedPdfAppend = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052\\Expected_AppendExistong_ImportTb.pdf';
+let Importpath1 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\UK_InHeader_ImportTb.xlsx';
+let Importpath2 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\UK_InHeader_ImportTb02.xlsx';
+let ExpectedPdfImport = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\Expected_ImportTb.pdf';
+let ExpectedPdfAppend = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\Expected_AppendExistong_ImportTb.pdf';
 let env = process.env.TEST_ENV || "SAT"; // Read from environment variable, default to SAT
 const expTurnoverValue = "58,032";
 const expCostOfSalesValue = "(962,653)";
@@ -45,29 +45,44 @@ const expTotalValue ="40,464,507";
 const testURL = environments[env].url;
 
     // Read credentials from environment variables (for CI/CD) or use defaults (for local)
-    const username = process.env.TEST_USERNAME || "akshay.vadde+test@tr.com";
+    const mailid = process.env.TEST_USERNAME || "akshay.vadde+test@tr.com";
     const password = process.env.TEST_PASSWORD || "$Admin#1";
-    const emeaUsername = process.env.EMEA_USERNAME || "AkshayVadde.fim";
+    const username = process.env.TEST_USERNAME || "AkshayAuto01.WAU";
+    const EMEAusername = process.env.TEST_USERNAME || "AkshayVadde.fim";
     const emeaPassword = process.env.EMEA_PASSWORD || "$Admin#136";
+
 
     const poManager = new POManager(page);
     if (env === "EMEA") {
         await page.goto(testURL);
-        await poManager.loginToApplication(emeaUsername, emeaPassword, "SYS_FIRM");
+        await poManager.loginToApplication(EMEAusername, emeaPassword, "SYS_FIRM");
       } else if (env === "SAT") {
         await page.goto(testURL);
 
-        await poManager.loginToLApp(username, password, "SYS_FIRM");
+        await poManager.loginToLApp(mailid,password,username, "SYS_FIRM");
+        
       }
     const frame = page.frameLocator('iframe[title="Corporate Tax"]');
 
 
 await page.waitForTimeout(3000);
 
+    // Wait for the inner Corporate Tax app (inside the iframe) to finish loading.
+    // The static 3s wait above is not always enough on the EMEA env, which caused
+    // the subsequent "Configuration" click to time out while the iframe was still empty.
+    // Wait for the Configuration button explicitly; if it doesn't appear, reload once
+    // and wait again before failing.
+    const configButton = frame.getByRole('button', { name: 'Configuration' });
+    try {
+        await configButton.waitFor({ state: 'visible', timeout: 120000 });
+    } catch (e) {
+        console.log('Configuration button not visible after 120s, reloading page and retrying...');
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await configButton.waitFor({ state: 'visible', timeout: 120000 });
+    }
 
-   
    // Entity Creation
-    await frame.getByRole('button', { name: 'Configuration' }).click();
+    await configButton.click();
     await frame.getByText('Entity Manager').click();
     await poManager.createEntity(GrpEntityName, GrpShortName, Jurisdiction);
     await poManager.createEntity(EntityName01, ShortName01, Jurisdiction);
@@ -109,11 +124,11 @@ await page.waitForTimeout(3000);
     await frame.locator('#saveEntities').click(); // Click the save button to save the changes
 
     // Update Excel headers with created entity names
-    const filepath01 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052\\UK_InHeader_ImportTb.xlsx';
+    const filepath01 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\UK_InHeader_ImportTb.xlsx';
     await updateEntityHeaders(filepath01, EntityName01, EntityName02, EntityName03);
     console.log('Excel headers updated with:', EntityName01, EntityName02, EntityName03);
 
-   const filepath02 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052\\UK_InHeader_ImportTb02.xlsx';
+   const filepath02 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\UK_InHeader_ImportTb02.xlsx';
     await updateEntityHeaders(filepath02, EntityName01, EntityName02, EntityName03);
     console.log('Excel headers updated with:', EntityName01, EntityName02, EntityName03);
 
@@ -141,8 +156,9 @@ await page.waitForTimeout(3000);
    // creating Map
    await frame.getByRole('button', { name: 'Configuration' }).click();
     await frame.getByText('Mapping').click();
-   await poManager.createNewMap1(MapName, DatasetName, COAName, "United Kingdom Corporate Tax 2025 1.370", "Trial balance");
+  await poManager.createNewMap1(MapName, DatasetName, COAName, "United Kingdom Corporate Tax 2025 1.370", "Trial balance");
      
+   
      //insert sheet
       for (let i=1; i<CalculationName.length-1; i++){
     await poManager.insertSheet(CalculationName[i], "Business - trade or property");
@@ -175,11 +191,12 @@ const { buffer } = await poManager.printcalculation(CalculationName[i]);
 await poManager.compareFiles(CalculationName[i], buffer, ExpectedPdfImport);
 await poManager.drillDownPO.verifyDrilldown("58,032","Turnover", "-58,032.17");
 await poManager.drillDownPO.verifyDrilldown("(962,653)","Cost of sales", "962,652.71");
-    }
+}
 
 
     const expgrpEnt2Value = "13,488,169";
     const expgrpTotalValue = "40,464,507";
+    
  await poManager.validateGrpImportedValues(CalculationName[0], EntityName02, expgrpEnt2Value, expgrpTotalValue);
 
 

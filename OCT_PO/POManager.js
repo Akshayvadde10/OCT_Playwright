@@ -47,8 +47,8 @@ class POManager{
         this.comparePrintfile = new CompareFiles(this.page);
         this.drillDownPO = new DrillDown(this.page);
     }
-    loginToLApp(username,password,clientName){
-        return this.lowEnvLogin.loginToLApp(username,password,clientName);
+    loginToLApp(mailid,password,username,clientName){
+        return this.lowEnvLogin.loginToLApp(mailid,password,username,clientName);
     }
     loginToApplication(username,password,clientName){
         return this.prodLogin.loginToApplication(username,password,clientName);

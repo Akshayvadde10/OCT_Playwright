@@ -27,6 +27,23 @@ class ValidateGrpImportedValues {
         await this.frame.getByRole('gridcell', { name: GroupCalculation }).click();
         await this.page.waitForTimeout(5000);
 
+        // Group calculations may show a "pending updates" confirmation modal
+        // (YES / NO / CANCEL / VIEW DETAILS). Accept it by clicking YES so the
+        // calculation opens in read-only mode without applying pending updates.
+        // Only present for group calculations; safe-guard with short timeout.
+        try {
+            const pendingUpdatesYes = this.frame.getByRole('button', { name: 'YES', exact: true });
+            await pendingUpdatesYes.waitFor({ state: 'visible', timeout: 5000 });
+            await pendingUpdatesYes.click({ timeout: 2000 });
+            console.log('Pending updates popup detected — clicked YES to proceed.');
+            await this.page.waitForTimeout(8000); // Wait for calculation to finish opening
+        } catch {
+            // No popup — group calc opened directly
+        }
+
+        // Wait for the Losses summary link to be ready (calc may still be loading)
+        await this.lossSummaryLink.waitFor({ state: 'visible', timeout: 30000 });
+
         // Navigate to Losses summary
         await this.lossSummaryLink.click();
         await this.page.waitForTimeout(5000);

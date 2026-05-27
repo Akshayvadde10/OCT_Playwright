@@ -25,6 +25,20 @@ class ValidateImportedValues {
         await this.frame.getByRole('gridcell', { name: calculationName }).click();
         await this.page.waitForTimeout(10000);
 
+        // Close any leftover side panel (e.g. Drilldown comparable picker) from a
+        // previous iteration. If it remains open, the worksheet layout shifts and
+        // virtualized cells like athena-worksheet-Cell-6:2 may not render.
+        try {
+            const sidePanelClose = this.frame.getByRole('button', { name: '×' }).last();
+            if (await sidePanelClose.isVisible({ timeout: 1000 }).catch(() => false)) {
+                await sidePanelClose.click({ timeout: 2000 });
+                console.log("Closed leftover side panel from previous iteration.");
+                await this.page.waitForTimeout(1000);
+            }
+        } catch {
+            // No side panel open — proceed
+        }
+
 
         // Expand Comprehensive income analysis section if collapsed
         try {
@@ -62,22 +76,101 @@ class ValidateImportedValues {
         }
 
 
-       
+    await this.page.waitForTimeout(3000); // Additional wait to ensure data is loaded after refresh
+
+     // Keep validation deterministic: bring worksheet back to top before reading fixed cell ids.
+     const anyWorksheetCell = this.frame.locator('[id^="athena-worksheet-Cell-"]').first();
+     await anyWorksheetCell.click();
+     await this.page.keyboard.press('Control+Home');
+     await this.page.waitForTimeout(800);
+
+     // Locate Turnover/Cost of sales by their label text rather than by a
+     // positional cell id (athena-worksheet-Cell-6:2). Row indices shift
+     // when virtualized rows haven't fully rendered after an import refresh
+     // (rows 6-8 can be missing for several seconds while the worksheet
+     // finishes painting). The text-anchored locator survives that.
+     const turnoverLabel = this.frame
+         .locator('div.athena-worksheet-cell-inner-default')
+         .filter({ hasText: /^Turnover$/i })
+         .first();
+     const costOfSalesLabel = this.frame
+         .locator('div.athena-worksheet-cell-inner-default')
+         .filter({ hasText: /^Cost of sales$/i })
+         .first();
+
+     // Wait up to 30s for Turnover row to render; if still missing, re-trigger
+     // the data-update notification once and wait again.
+     let turnoverVisible = await turnoverLabel
+         .waitFor({ state: 'visible', timeout: 30000 })
+         .then(() => true)
+         .catch(() => false);
+
+     if (!turnoverVisible) {
+         console.log('Turnover row not rendered yet — re-clicking data update notification...');
+         await this.frame.locator('.UpdatesAvailable').first().click({ timeout: 2000 }).catch(() => {});
+         await this.page.waitForTimeout(8000);
+         turnoverVisible = await turnoverLabel
+             .waitFor({ state: 'visible', timeout: 15000 })
+             .then(() => true)
+             .catch(() => false);
+     }
+
+     if (!turnoverVisible) {
+         // Last-resort recovery: the worksheet painted before the imported
+         // rows arrived from the server (Gross profit is shown but the
+         // Turnover/Cost-of-sales rows are missing entirely). Re-navigate
+         // to the Income statement sheet to force a clean re-render.
+         console.log('Turnover row still missing — re-navigating to Income statement to force re-render...');
+         const incomeStatementTreeItem = this.frame
+             .getByRole('treeitem', { name: /Income statement/i })
+             .first();
+         await incomeStatementTreeItem.click({ timeout: 5000 }).catch(() => {});
+         await this.page.waitForTimeout(5000);
+         await this.frame.locator('.UpdatesAvailable').first()
+             .click({ timeout: 2000 })
+             .catch(() => {});
+         await this.page.waitForTimeout(8000);
+         turnoverVisible = await turnoverLabel
+             .waitFor({ state: 'visible', timeout: 20000 })
+             .then(() => true)
+             .catch(() => false);
+     }
+
+     if (!turnoverVisible) {
+         throw new Error('Turnover row never rendered on Income statement after data refresh.');
+     }
+
+     // Turnover and Cost of sales sit within the top 20 rows of the Income
+     // statement — no scrolling required. Just wait for the Cost of sales
+     // label to be visible in the already-rendered viewport.
+     await costOfSalesLabel.waitFor({ state: 'visible', timeout: 10000 });
+
+     // Amount cell is the gridcell sibling immediately after the label's gridcell.
+     const turnoverAmountCell = turnoverLabel.locator(
+         'xpath=ancestor::div[@role="gridcell"][1]/following-sibling::div[@role="gridcell"][1]'
+     );
+     const costOfSalesAmountCell = costOfSalesLabel.locator(
+         'xpath=ancestor::div[@role="gridcell"][1]/following-sibling::div[@role="gridcell"][1]'
+     );
 
         // Validate Turnover value
-        const turnover = await this.turnoverCell.textContent();
-        console.log("Turnover value in Calculation after import: " + turnover.trim());
-        expect(turnover.trim()).toBe(expTurnoverValue);
+        const turnoverRaw = ((await turnoverAmountCell.textContent()) || '').replace(/\u00a0/g, ' ').trim();
+        const turnoverMatches = [...turnoverRaw.matchAll(/\(?-?\d[\d,]*(?:\.\d+)?\)?/g)];
+        const turnover = turnoverMatches.length > 0 ? turnoverMatches[turnoverMatches.length - 1][0] : turnoverRaw;
+        console.log("Turnover value in Calculation after import: " + turnover);
+        expect(turnover).toBe(expTurnoverValue);
 
         // Validate Cost of Sales value
-        const costOfSales = await this.costOfSalesCell.textContent();
-        console.log("Cost of Sales value in Calculation after import: " + costOfSales.trim());
-        expect(costOfSales.trim()).toBe(expCostOfSalesValue);
+        const costRaw = ((await costOfSalesAmountCell.textContent()) || '').replace(/\u00a0/g, ' ').trim();
+        const costMatches = [...costRaw.matchAll(/\(?-?\d[\d,]*(?:\.\d+)?\)?/g)];
+        const costOfSales = costMatches.length > 0 ? costMatches[costMatches.length - 1][0] : costRaw;
+        console.log("Cost of Sales value in Calculation after import: " + costOfSales);
+        expect(costOfSales).toBe(expCostOfSalesValue);
 
         console.log("✓ Import validation successful - All values match expected results");
     }
 
-    async validateMultipleEntitiesImport(entityCalculations) {
+    /*async validateMultipleEntitiesImport(entityCalculations) {
         /**
          * Validates imported values for multiple entities
          * @param {Array} entityCalculations - Array of objects with structure:
@@ -85,7 +178,7 @@ class ValidateImportedValues {
          *   { calculationName: 'Name', turnover: '58,032', costOfSales: '(962,653)' },
          *   { calculationName: 'Name2', turnover: '...' }
          * ]
-         */
+         
         for (const entity of entityCalculations) {
             console.log(`\nValidating calculation: ${entity.calculationName}`);
             await this.validateImportedValues(
@@ -99,7 +192,7 @@ class ValidateImportedValues {
             await this.calculationsLink.click();
             await this.page.waitForTimeout(1000);
         }
-    }
+    }*/
 }
 
 export { ValidateImportedValues };

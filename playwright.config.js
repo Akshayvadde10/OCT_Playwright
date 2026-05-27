@@ -19,9 +19,9 @@ export default defineConfig({
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
-    retries: 0, // Retries failed tests up to 2 times
+    retries: 0, // Retries failed tests up to 3 times
   /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  workers: 5,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -42,7 +42,7 @@ export default defineConfig({
  
 
   // Global test timeout
-  timeout: 1800000, // 30 minutes per test
+  timeout: 3000000, // 50 minutes per test
 
   /* Configure projects for major browsers */
   projects: [

@@ -36,6 +36,7 @@ class CreateMap {
     await this.ImportTypeDropdown.pressSequentially(ImportType);
     await this.frame.locator("div.mb-1", { hasText: ImportType }).click();
     await this.frame.getByRole("button", { name: "OK" }).click(); // Save the new Map
+    
     await this.frame.locator("//div[@id='athena-grid-cell-44-0:2']//button").click();// Click the actions button for the created Map to open the dropdown
     await this.frame.locator(".wj-form-control").pressSequentially(mapName);
     await this.page.waitForTimeout(2000);

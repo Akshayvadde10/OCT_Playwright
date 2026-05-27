@@ -1,6 +1,6 @@
 import {expect, test} from '@playwright/test';
-import { POManager } from '../../OCT_PO/POManager.js';
-import { environments } from "../../OCT_PO/Env.js";
+import { POManager } from '../OCT_PO/POManager.js';
+import { environments } from "../OCT_PO/Env.js";
 
 test('BVT_UK', async ({ page }) => {
 

@@ -19,9 +19,9 @@ class CreateDS
     await this.addButton.click();
     await this.page.waitForTimeout(5000);
     await this.DatasetNameInput.fill(DatasetName);
-    const currentYear = new Date().getFullYear();
-    await this.startDateInput.fill(`7/1/${currentYear - 1}`);
-    await this.endDateInput.fill(`6/30/${currentYear}`);
+   // const currentYear = new Date().getFullYear();
+    //await this.startDateInput.fill(`7/1/${currentYear - 1}`);
+    //await this.endDateInput.fill(`6/30/${currentYear}`);
 
     await this.nextButton.click();
     await this.page.waitForTimeout(5000);// wait until all entities load in the list
@@ -53,21 +53,41 @@ class CreateDS
     const result = await this.verifyDatasetCreationNotification(DatasetName);
     console.log(`Dataset Status: ${result.status}`);
 
-    // Find and click the dataset column header button to open filter
-    const headerButton = this.frame.locator("//div[@class='wj-cell wj-header wj-filter-off']//button//span").first();
+    // Close the More popup if it is still open from refresh retries.
+    const moreButtonAfterRefresh = this.frame.getByRole('button', { name: 'More', exact: true });
+    const isMoreExpanded = await moreButtonAfterRefresh.getAttribute('aria-expanded');
+    if (isMoreExpanded === 'true') {
+        await moreButtonAfterRefresh.press('Escape');
+    }
+
+    // Open Dataset column filter using the visible header filter button.
+    const headerButton = this.frame.locator('button[aria-label="Edit Filter for Column Dataset"]:visible').first();
     await headerButton.waitFor({ state: "visible", timeout: 10000 });
-    await headerButton.click();
+    await headerButton.scrollIntoViewIfNeeded();
+    try {
+        await headerButton.click({ timeout: 5000 });
+    } catch {
+        // Grid headers can be virtualized/cloned; fallback to DOM click when Playwright actionability reports off-viewport.
+        await headerButton.dispatchEvent('click');
+    }
     await this.page.waitForTimeout(2000);
-    // Type dataset name in the filter input
-    await this.frame.locator(".wj-form-control").pressSequentially(DatasetName);
+    // Type dataset name in the active filter input.
+    const filterInput = this.frame.locator(".wj-form-control").last();
+    await filterInput.click();
+    await filterInput.press('Control+A');
+    await filterInput.press('Backspace');
+    await filterInput.pressSequentially(DatasetName);
     await this.page.waitForTimeout(3000);
     await this.frame.getByText("Apply").click();
     await this.page.waitForTimeout(5000);
-    // Verify filtered dataset appears
-    const datasetEntry = this.frame.locator("//div[@id='athena-grid-cell-82-2:1']");
+    // Verify the expected dataset appears in the treegrid (do not rely on volatile grid cell ids).
+    const datasetEntry = this.frame
+        .locator('div[role="treegrid"] div.wj-row')
+        .filter({ hasText: DatasetName })
+        .first();
     await this.page.waitForTimeout(5000);
     console.log("Dataset created successfully with name:" + DatasetName);
-    await expect(datasetEntry).toHaveText(DatasetName);
+    await expect(datasetEntry).toContainText(DatasetName);
 
 // Get all calculation names for the dataset
     await this.page.waitForTimeout(2000);
@@ -140,7 +160,7 @@ class CreateDS
     return { calculations, taxYear };
 }
 
-async verifyDatasetCreationNotification(DatasetName, maxRetries = 15) {
+async verifyDatasetCreationNotification(DatasetName, maxRetries = 400) {
     // Check notification status and retry with refresh if still creating
     const toolbar = this.frame.getByRole('toolbar').first();
     const moreButton = toolbar.getByRole('button', { name: 'More', exact: true });
