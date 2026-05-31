@@ -28,7 +28,19 @@ class CreateMap {
    await this.frame.locator("div.mb-1", { hasText: DatasetName }).click();
     await this.page.waitForTimeout(2000);
     await this.COAdropdown.pressSequentially(COAName);
-    await this.frame.getByText(COAName).click();
+    // Sometimes the COA option list does not populate after the first type;
+    // if the option is not visible, clear the input and retype to force refresh.
+    const coaOption = this.frame.getByText(COAName);
+    if (!(await coaOption.first().isVisible({ timeout: 5000 }).catch(() => false))) {
+        console.log(`COA "${COAName}" not listed — clearing dropdown and retrying.`);
+        await this.COAdropdown.click();
+        await this.COAdropdown.press('Control+A');
+        await this.COAdropdown.press('Backspace');
+        await this.page.waitForTimeout(1000);
+        await this.COAdropdown.pressSequentially(COAName);
+        await coaOption.first().waitFor({ state: 'visible', timeout: 15000 });
+    }
+    await coaOption.click();
     await this.page.waitForTimeout(2000);
     await this.Mapped_to_Dropdown.pressSequentially("United Kingdom Corporate Tax");
     await this.frame.getByText(template).click();

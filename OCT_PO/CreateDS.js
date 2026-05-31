@@ -35,8 +35,22 @@ class CreateDS
 
     await this.entityFilterInput.pressSequentially(entityToSelect);
     await this.page.waitForTimeout(2000);
-    //await this.frame.locator(`text=${entityToSelect}`).locator("..").locator(".entity-checkbox").click();
-    await this.frame.getByRole('treeitem', { name: entityToSelect }).getByRole('checkbox').click();
+
+    // Sometimes the filtered entity list does not populate after the first type;
+    // if the checkbox under the entity tree item is not visible, clear the filter
+    // and retype the name to force the list to refresh.
+    const entityCheckbox = this.frame.getByRole('treeitem', { name: entityToSelect }).getByRole('checkbox');
+    if (!(await entityCheckbox.isVisible({ timeout: 5000 }).catch(() => false))) {
+        console.log(`Entity "${entityToSelect}" not listed — clearing filter and retrying.`);
+        await this.entityFilterInput.click();
+        await this.entityFilterInput.press('Control+A');
+        await this.entityFilterInput.press('Backspace');
+        await this.page.waitForTimeout(1000);
+        await this.entityFilterInput.pressSequentially(entityToSelect);
+        await this.page.waitForTimeout(2000);
+        await entityCheckbox.waitFor({ state: 'visible', timeout: 15000 });
+    }
+    await entityCheckbox.click();
 
     await this.nextButton.click();
 

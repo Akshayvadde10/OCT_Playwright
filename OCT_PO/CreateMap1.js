@@ -23,16 +23,23 @@ class CreateMap1 {
    
     
     //await this.datasetDropdown.pressSequentially(DatasetName);
-    await this.frame.locator("#mapping_add_datasets").pressSequentially(DatasetName);
-    await this.frame.locator("div.mb-1", { hasText: DatasetName }).click();
+    const datasetInput = this.frame.locator("#mapping_add_datasets");
+    await datasetInput.pressSequentially(DatasetName);
+    await this.page.waitForTimeout(1000);
+    const datasetOption = this.frame.getByRole('option', { name: DatasetName, exact: true });
+    if (await datasetOption.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await datasetOption.click();
+    } else {
+        await datasetInput.press('Enter');
+    }
     await this.page.keyboard.press('Tab');
      await this.page.keyboard.press('Tab');
       await this.page.keyboard.press('Tab');
    
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(3000);
     
    // await this.COAdropdown.pressSequentially(COAName);
-        await this.frame.locator("#mapping_add_coa").pressSequentially(COAName);
+    await this.frame.locator("#mapping_add_coa").pressSequentially(COAName);
     await this.frame.locator("div.mb-1", { hasText: COAName }).click();
     await this.page.waitForTimeout(2000);
     await this.page.keyboard.press('Tab');
@@ -61,7 +68,13 @@ class CreateMap1 {
        await importTypeInput.press('Backspace');
        await importTypeInput.pressSequentially(ImportType);
    }
-   await this.frame.locator("div.mb-1", { hasText: ImportType }).click();
+   await this.page.waitForTimeout(1000);
+   const importTypeOption = this.frame.getByRole('option', { name: ImportType, exact: true });
+   if (await importTypeOption.isVisible({ timeout: 3000 }).catch(() => false)) {
+       await importTypeOption.click();
+   } else {
+       await importTypeInput.press('Enter');
+   }
     const mapDialog = this.frame.locator('ngb-modal-window[role="dialog"]');
     await this.okButton.click(); // Save the new Map
 

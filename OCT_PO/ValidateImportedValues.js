@@ -21,9 +21,26 @@ class ValidateImportedValues {
         await this.calculationsLink.click();
         await this.page.waitForTimeout(2000);
 
-        // Open the calculation
-        await this.frame.getByRole('gridcell', { name: calculationName }).click();
-        await this.page.waitForTimeout(10000);
+        // Open the calculation — use exact match so we don't accidentally
+        // re-click the previously opened calculation's header banner (which
+        // also contains the calc name). The Wijmo grid's `role="row"` element
+        // is reported as hidden by Playwright's visibility heuristics, so we
+        // target the gridcell directly (it renders normally).
+        const escapedName = calculationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const targetCell = this.frame
+            .getByRole('gridcell', { name: calculationName, exact: true })
+            .first();
+        await targetCell.waitFor({ state: 'visible', timeout: 20000 });
+        await targetCell.dblclick();
+
+        // Verify the worksheet header (breadcrumb) reflects the requested
+        // calculation before continuing. Use ` : ` suffix to disambiguate from
+        // the sidebar calc-item links (which are hidden but match the name).
+        const calcHeader = this.frame
+            .getByText(new RegExp(`${escapedName}[\\s\\S]*:`))
+            .first();
+        await calcHeader.waitFor({ state: 'visible', timeout: 30000 });
+        await this.page.waitForTimeout(5000);
 
         // Close any leftover side panel (e.g. Drilldown comparable picker) from a
         // previous iteration. If it remains open, the worksheet layout shifts and
@@ -78,17 +95,17 @@ class ValidateImportedValues {
 
     await this.page.waitForTimeout(3000); // Additional wait to ensure data is loaded after refresh
 
-     // Keep validation deterministic: bring worksheet back to top before reading fixed cell ids.
-     const anyWorksheetCell = this.frame.locator('[id^="athena-worksheet-Cell-"]').first();
-     await anyWorksheetCell.click();
-     await this.page.keyboard.press('Control+Home');
-     await this.page.waitForTimeout(800);
+    // Click Refresh button (if confirmation dialog appears) to ensure latest data is loaded.
+    // Use getByRole to avoid strict-mode ambiguity with the dialog message text.
+    const refreshBtn = this.frame.getByRole('button', { name: 'Refresh', exact: true });
+    if (await refreshBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await refreshBtn.click();
+        await this.page.waitForTimeout(5000); // Wait for refresh to complete and data to load
+    }
 
      // Locate Turnover/Cost of sales by their label text rather than by a
      // positional cell id (athena-worksheet-Cell-6:2). Row indices shift
-     // when virtualized rows haven't fully rendered after an import refresh
-     // (rows 6-8 can be missing for several seconds while the worksheet
-     // finishes painting). The text-anchored locator survives that.
+     // when virtualized rows haven't fully rendered after an import refresh.
      const turnoverLabel = this.frame
          .locator('div.athena-worksheet-cell-inner-default')
          .filter({ hasText: /^Turnover$/i })
@@ -98,46 +115,49 @@ class ValidateImportedValues {
          .filter({ hasText: /^Cost of sales$/i })
          .first();
 
-     // Wait up to 30s for Turnover row to render; if still missing, re-trigger
-     // the data-update notification once and wait again.
+     // Helper: force the virtualised worksheet to repaint rows starting at row 1.
+     // Wijmo only re-virtualises on real scroll events, so we wheel down a bit
+     // then back to the top — this guarantees rows 1-10 get re-painted even if
+     // the scroller was already at top but Wijmo skipped rendering some rows.
+     const scrollWorksheetToTop = async () => {
+         const grid = this.frame.locator('[role="grid"]').first();
+         await grid.waitFor({ state: 'visible', timeout: 10000 });
+         const box = await grid.boundingBox();
+         if (box) {
+             const cx = box.x + box.width / 2;
+             const cy = box.y + box.height / 2;
+             await this.page.mouse.move(cx, cy);
+             // Wheel down to force re-virtualisation, then back to the top.
+             await this.page.mouse.wheel(0, 600);
+             await this.page.waitForTimeout(400);
+             await this.page.mouse.wheel(0, -2000);
+             await this.page.waitForTimeout(400);
+         }
+         // Final keyboard nudge to ensure caret + viewport are at A1.
+         await grid.locator('[role="gridcell"]').first().click({ timeout: 3000 }).catch(() => {});
+         await this.page.keyboard.press('Control+Home');
+         await this.page.waitForTimeout(800);
+     };
+
+     await scrollWorksheetToTop();
      let turnoverVisible = await turnoverLabel
-         .waitFor({ state: 'visible', timeout: 30000 })
+         .waitFor({ state: 'visible', timeout: 10000 })
          .then(() => true)
          .catch(() => false);
 
+     // If still missing, do one more wheel scroll-up burst — Wijmo sometimes
+     // needs a second nudge after a data refresh.
      if (!turnoverVisible) {
-         console.log('Turnover row not rendered yet — re-clicking data update notification...');
-         await this.frame.locator('.UpdatesAvailable').first().click({ timeout: 2000 }).catch(() => {});
-         await this.page.waitForTimeout(8000);
+         console.log('Turnover row missing after first scroll — wheel-scrolling again.');
+         await scrollWorksheetToTop();
          turnoverVisible = await turnoverLabel
-             .waitFor({ state: 'visible', timeout: 15000 })
+             .waitFor({ state: 'visible', timeout: 10000 })
              .then(() => true)
              .catch(() => false);
      }
 
      if (!turnoverVisible) {
-         // Last-resort recovery: the worksheet painted before the imported
-         // rows arrived from the server (Gross profit is shown but the
-         // Turnover/Cost-of-sales rows are missing entirely). Re-navigate
-         // to the Income statement sheet to force a clean re-render.
-         console.log('Turnover row still missing — re-navigating to Income statement to force re-render...');
-         const incomeStatementTreeItem = this.frame
-             .getByRole('treeitem', { name: /Income statement/i })
-             .first();
-         await incomeStatementTreeItem.click({ timeout: 5000 }).catch(() => {});
-         await this.page.waitForTimeout(5000);
-         await this.frame.locator('.UpdatesAvailable').first()
-             .click({ timeout: 2000 })
-             .catch(() => {});
-         await this.page.waitForTimeout(8000);
-         turnoverVisible = await turnoverLabel
-             .waitFor({ state: 'visible', timeout: 20000 })
-             .then(() => true)
-             .catch(() => false);
-     }
-
-     if (!turnoverVisible) {
-         throw new Error('Turnover row never rendered on Income statement after data refresh.');
+         throw new Error('Turnover row never rendered on Income statement after scrolling to top.');
      }
 
      // Turnover and Cost of sales sit within the top 20 rows of the Income
