@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "playwright test",
-    "test:bvt-uk-latest-copy": "playwright test tests/BVT_UK_Latest_copy.spec.js"
+    "test:bvt-uk-latest-copy": "playwright test tests/BVT_UK_Latest_copy.spec.js",
+    "test:OCT_Regression": "playwright test tests/OCT_Regression"
   },
   "keywords": [],
   "author": "",

@@ -1,0 +1,84 @@
+name: OCT Regression Tests on EC2
+
+on:
+  workflow_dispatch:  # Manual trigger from GitHub UI
+    inputs:
+      test_env:
+        description: 'Test Environment (SAT/EMEA/PROD)'
+        required: true
+        default: 'SAT'
+        type: choice
+        options:
+          - SAT
+          - EMEA
+          - PROD
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  oct-regression:
+    timeout-minutes: 120
+    runs-on: [self-hosted, Windows, X64, OCT-API-Regression-ONE-MAY]
+
+    steps:
+    # Step 1: Checkout latest code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Step 2: Setup Node.js (ensures consistent version on EC2)
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    # Step 3: Install npm dependencies
+    - name: Install dependencies
+      run: npm ci
+
+    # Step 4: Install Playwright browsers (Chrome since config uses channel: 'chrome')
+    - name: Install Playwright Browsers
+      run: npx playwright install chrome
+
+    # Step 5: Run OCT Regression tests
+    - name: Run OCT Regression Tests
+      run: npm run test:OCT_Regression
+      env:
+        CI: true
+        TEST_ENV: ${{ github.event.inputs.test_env || 'SAT' }}
+
+    # Step 6: Upload Playwright HTML Report (always, even on failure)
+    - name: Upload Playwright HTML Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-html-report
+        path: playwright-report/
+        retention-days: 30
+
+    # Step 7: Upload Test Results (traces, screenshots)
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: test-results/
+        retention-days: 14
+
+    # Step 8: Upload downloaded PDFs (if any)
+    - name: Upload Downloaded PDFs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: download-artifacts
+        path: DownloadPrint/
+        retention-days: 14
+
+    # Step 9: Publish Test Summary in GitHub Actions UI
+    - name: Test Report Summary
+      if: always()
+      uses: daun/playwright-report-summary@v3
+      with:
+        report-file: test-results/.last-run.json
+        comment-title: 'OCT Regression Test Results'
