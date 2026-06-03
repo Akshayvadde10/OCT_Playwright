@@ -24,7 +24,8 @@ class CreateMap1 {
     
     //await this.datasetDropdown.pressSequentially(DatasetName);
     const datasetInput = this.frame.locator("#mapping_add_datasets");
-    await datasetInput.pressSequentially(DatasetName);
+    await datasetInput.click();
+    await datasetInput.pressSequentially(DatasetName, { delay: 150 }); // slow typing so combobox filters properly
     await this.page.waitForTimeout(1000);
     const datasetOption = this.frame.getByRole('option', { name: DatasetName, exact: true });
     if (await datasetOption.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -37,10 +38,47 @@ class CreateMap1 {
       await this.page.keyboard.press('Tab');
    
     await this.page.waitForTimeout(3000);
-    
-   // await this.COAdropdown.pressSequentially(COAName);
-    await this.frame.locator("#mapping_add_coa").pressSequentially(COAName);
-    await this.frame.locator("div.mb-1", { hasText: COAName }).click();
+
+    // Select COA from combobox. The listbox sometimes shows the full unfiltered list
+    // (newly-created COA not yet indexed); if not found, clear and retype once.
+    const coaInput = this.frame.locator("#mapping_add_coa");
+    const coaOption = this.frame.getByRole('option', { name: COAName, exact: true });
+    const coaOptionLoose = this.frame.locator('[role="option"]').filter({ hasText: COAName }).first();
+
+    await coaInput.click();
+    await coaInput.pressSequentially(COAName, { delay: 150 }); // slow typing so combobox filters properly
+    await this.page.waitForTimeout(1500);
+
+    let coaSelected = false;
+    if (await coaOption.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await coaOption.click();
+        coaSelected = true;
+    } else if (await coaOptionLoose.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await coaOptionLoose.click();
+        coaSelected = true;
+    } else {
+        console.log(`COA "${COAName}" not in dropdown. Clearing and retyping once.`);
+        await coaInput.click();
+        await coaInput.press('Control+A');
+        await coaInput.press('Backspace');
+        await this.page.waitForTimeout(500);
+        await coaInput.pressSequentially(COAName, { delay: 200 }); // even slower on retry
+        await this.page.waitForTimeout(2000);
+        if (await coaOption.isVisible({ timeout: 2000 }).catch(() => false)) {
+            await coaOption.click();
+            coaSelected = true;
+        } else if (await coaOptionLoose.isVisible({ timeout: 1000 }).catch(() => false)) {
+            await coaOptionLoose.click();
+            coaSelected = true;
+        }
+    }
+
+    if (!coaSelected) {
+        // Last-ditch: try the original div.mb-1 selector with a short timeout
+        const legacy = this.frame.locator("div.mb-1", { hasText: COAName }).first();
+        await legacy.click({ timeout: 5000 });
+    }
+
     await this.page.waitForTimeout(2000);
     await this.page.keyboard.press('Tab');
     await this.page.keyboard.press('Tab');
