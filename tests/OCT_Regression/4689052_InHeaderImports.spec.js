@@ -33,11 +33,11 @@ let ImportName01=`${Tsid}_PWImport01_${Date.now()}`;
 let ImportName02=`${Tsid}_PWImport02_${Date.now()}`;
 let ImportName03=`${Tsid}_PWImport03_${Date.now()}`;
 
-let Importpath1 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\UK_InHeader_ImportTb.xlsx';
-let Importpath2 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\UK_InHeader_ImportTb02.xlsx';
-let ExpectedPdfImport = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\Expected_ImportTb.pdf';
-let ExpectedPdfAppend = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\Expected_AppendExistong_ImportTb.pdf';
-let env = process.env.TEST_ENV || "EMEA"; // Read from environment variable, default to SAT
+let Importpath1 = 'Test Data/Regression/4689052_InHeaderImports/UK_InHeader_ImportTb.xlsx';
+let Importpath2 = 'Test Data/Regression/4689052_InHeaderImports/UK_InHeader_ImportTb02.xlsx';
+let ExpectedPdfImport = 'Test Data/Regression/4689052_InHeaderImports/Expected_ImportTb.pdf';
+let ExpectedPdfAppend = 'Test Data/Regression/4689052_InHeaderImports/Expected_AppendExistong_ImportTb.pdf';
+let env = process.env.TEST_ENV || "EMEA"; // Read from environment variable, default to EMEA
 const expTurnoverValue = "58,032";
 const expCostOfSalesValue = "(962,653)";
 const expEnt2value = "13,488,169";
@@ -124,11 +124,11 @@ await page.waitForTimeout(3000);
     await frame.locator('#saveEntities').click(); // Click the save button to save the changes
 
     // Update Excel headers with created entity names
-    const filepath01 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\UK_InHeader_ImportTb.xlsx';
+    const filepath01 = 'Test Data/Regression/4689052_InHeaderImports/UK_InHeader_ImportTb.xlsx';
     await updateEntityHeaders(filepath01, EntityName01, EntityName02, EntityName03);
     console.log('Excel headers updated with:', EntityName01, EntityName02, EntityName03);
 
-   const filepath02 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports\\UK_InHeader_ImportTb02.xlsx';
+   const filepath02 = 'Test Data/Regression/4689052_InHeaderImports/UK_InHeader_ImportTb02.xlsx';
     await updateEntityHeaders(filepath02, EntityName01, EntityName02, EntityName03);
     console.log('Excel headers updated with:', EntityName01, EntityName02, EntityName03);
 

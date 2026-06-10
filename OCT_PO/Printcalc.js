@@ -407,7 +407,7 @@ class Printcalc {
         const cleanCalcName = CalculationName.replace(/[/\\:*?"<>|]/g, '_');
 
         // Save the downloaded file with a clean name directly in DownloadPrint folder
-        const downloadPath = `C:/Playwright_self/playwright-OCT-Automation2/DownloadPrint/${cleanCalcName}_${Date.now()}.pdf`;
+        const downloadPath = `DownloadPrint/${cleanCalcName}_${Date.now()}.pdf`;
         await download.saveAs(downloadPath);
 
         console.log(`File downloaded successfully: ${downloadPath}`);

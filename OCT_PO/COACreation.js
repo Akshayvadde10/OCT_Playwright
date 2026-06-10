@@ -41,7 +41,7 @@ class COACreation {
     await this.page.waitForTimeout(2000);
     await this.frame.locator(`a:has-text("${COAName}")`).click(); // Click the created COA to open details page
     await this.page.waitForTimeout(2000);
-    await this.fileInput.setInputFiles("C:/Playwright_self/playwright-OCT-Automation2/Test Data/BVT_UK_ImportCoA.xlsx");
+    await this.fileInput.setInputFiles("Test Data/BVT_UK_ImportCoA.xlsx");
     await this.frame.getByText("Save").click();
     await this.page.waitForTimeout(2000);
   }

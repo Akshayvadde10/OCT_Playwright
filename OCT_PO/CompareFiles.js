@@ -11,7 +11,7 @@ class CompareFiles {
     constructor(page) {
         this.page = page;
         this.frame = page.frameLocator('iframe[title="Corporate Tax"]');
-        this.baselinePath = 'C:/Playwright_self/playwright-OCT-Automation2/BaselinePDFs';
+        this.baselinePath = 'BaselinePDFs';
     }
 
     /**
