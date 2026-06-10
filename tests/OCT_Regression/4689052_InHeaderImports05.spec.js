@@ -37,8 +37,7 @@ let Importpath1 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\R
 let Importpath2 = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports05\\UK_InHeader_ImportTb02.xlsx';
 let ExpectedPdfImport = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports05\\Expected_ImportTb.pdf';
 let ExpectedPdfAppend = 'C:\\Playwright_self\\playwright-OCT-Automation2\\Test Data\\Regression\\4689052_InHeaderImports05\\Expected_AppendExistong_ImportTb.pdf';
-let env = (process.env.TEST_ENV || "EMEA").trim().toUpperCase(); // Read from environment variable, default to EMEA
-console.log(`[DEBUG] TEST_ENV raw value: "${process.env.TEST_ENV}" | resolved env: "${env}"`);
+let env = process.env.TEST_ENV || "EMEA"; // Read from environment variable, default to SAT
 const expTurnoverValue = "58,032";
 const expCostOfSalesValue = "(962,653)";
 const expEnt2value = "13,488,169";
@@ -49,7 +48,7 @@ const testURL = environments[env].url;
     const mailid = process.env.TEST_USERNAME || "akshay.vadde+test@tr.com";
     const password = process.env.TEST_PASSWORD || "$Admin#1";
     const EMEAusername = process.env.TEST_USERNAME || "Shilpa_Manchikatla_FIM";
-    const emeaPassword = process.env.EMEA_PASSWORD || "Test@0112";
+    const emeaPassword = process.env.EMEA_PASSWORD || "Test@0113";
     const username = process.env.TEST_USERNAME || "AkshayAuto05.WAU";
 
  const poManager = new POManager(page);
