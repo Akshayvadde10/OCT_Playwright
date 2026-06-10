@@ -45,7 +45,7 @@ jobs:
       run: npm run test:OCT_Regression
       env:
         CI: true
-        TEST_ENV: ${{ github.event.inputs.test_env || 'SAT' }}
+        TEST_ENV: ${{ github.event.inputs.test_env || 'EMEA' }}
 
     # Step 6: Upload Playwright HTML Report (always, even on failure)
     - name: Upload Playwright HTML Report
