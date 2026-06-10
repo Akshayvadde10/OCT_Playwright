@@ -1,9 +1,9 @@
 class Prod_Login{
     constructor(page){
    this.page=page;     
-   this.username=page.locator('#txtLogin')
-   this.password=page.locator('#txtPassword')
-   this.signInButton=page.locator('#btnSignIn')
+   this.username=page.locator('input#text-field-1')
+   this.password=page.locator('input#text-field-2')
+   this.signInButton=page.locator('.sign-in-button')
    this.corporateTaxTile=page.locator('#HomeProduct-CorporateTax')
    this.subClientSearchBox=page.locator('#SubClient-Search-Box')
    
