@@ -48,7 +48,7 @@ const testURL = environments[env].url;
   const mailid = process.env.TEST_USERNAME || "akshay.vadde+test@tr.com";
     const password = process.env.TEST_PASSWORD || "$Admin#1";
     const EMEAusername = process.env.TEST_USERNAME || "Satya.fim";
-    const emeaPassword = process.env.EMEA_PASSWORD || "$Admin#99999";
+    const emeaPassword = process.env.EMEA_PASSWORD || "$Admin#99990";
     const username = process.env.TEST_USERNAME || "AkshayAuto04.WAU";
 
 
