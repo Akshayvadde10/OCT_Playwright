@@ -1,4 +1,4 @@
-name: OCT Regression Tests on EC2
+name: OCT Regression Tests
 
 on:
   workflow_dispatch:  # Manual trigger from GitHub UI
@@ -6,12 +6,11 @@ on:
       test_env:
         description: 'Test Environment (SAT/EMEA/PROD)'
         required: true
-        default: 'SAT'
+        default: 'EMEA'
         type: choice
         options:
-          - SAT
-          - EMEA
-          - PROD
+        - EMEA
+          
   push:
     branches: [ main ]
   pull_request:
@@ -20,7 +19,7 @@ on:
 jobs:
   oct-regression:
     timeout-minutes: 120
-    runs-on: [self-hosted, Windows, X64, OCT-API-Regression-ONE-MAY]
+    runs-on: windows-latest
 
     steps:
     # Step 1: Checkout latest code
